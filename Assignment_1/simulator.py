@@ -21,7 +21,7 @@ def simulate(agent, environment, time_steps):
         observations.append(msg)
     return states, observations
 
-def main(init_state,grid_size,time_steps):
+def main(init_state,grid_size,time_steps,time_steps_prediction):
     agent,env = init(init_state,grid_size)
     # states,observations = simulate(agent,env,time_steps)
     # states = [(2, 2), (2, 1), (2, 2), (3, 2), (4, 2), (4, 3), (4, 2), (3, 2), (3, 3), (3, 2), (2, 2)]
@@ -31,16 +31,22 @@ def main(init_state,grid_size,time_steps):
     print(states)
     print(observations)
     print("going in utils")
+    backward_pass = utils.backward(time_steps,grid_size,observations)
+    # print(backward_pass)
     init_pass = [[1/math.pow(grid_size,2) for i in range(grid_size)] for j in range(grid_size)]
     forward_pass = utils.filtering(init_pass,time_steps,grid_size,observations)
-    ll = utils.get_log_likelihood(forward_pass,grid_size)
-    for i in range(len(ll)):
+    smoothing_var = utils.smoothing(time_steps,grid_size, forward_pass,backward_pass)
+    print(smoothing_var)
+    # ll = utils.get_log_likelihood(forward_pass,grid_size)
+    # predictions = utils.prediction(time_steps_prediction,grid_size,forward_pass[-1])
+    # print(predictions)
+    for i in range(len(smoothing_var)):
         ax = plt.axes()
-        sbn.heatmap(ll[i],annot = True,cmap = "PiYG",ax = ax)
+        sbn.heatmap(smoothing_var[i],annot = True,cmap = "PiYG",ax = ax)
         ax.set_title("Timestep " + str(i))
         plt.savefig("Timestep " + str(i))
         plt.show()
-    mle = utils.maximum_likelihood(ll,grid_size,init_state)
+    mle = utils.maximum_likelihood(smoothing_var,grid_size,init_state)
     distinguish = [[[0 for i in range(grid_size)] for j in range(grid_size)] for k in range(time_steps+1)]
     for i in range(time_steps+1):
         distinguish[i][states[i][0]][states[i][1]] = 1
@@ -52,4 +58,4 @@ def main(init_state,grid_size,time_steps):
         plt.show()
     print(mle)
 
-main((2,2),5,10)
+main((2,2),5,10,5)
