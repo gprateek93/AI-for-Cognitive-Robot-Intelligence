@@ -1,13 +1,12 @@
+import random 
+
 class Agent:
     def __init__(self,initial_state):
         self.state = initial_state
     
     def transition(self, state, n):
         r = random.random()
-        print(r)
         new_state = ()
-        rotor_message = ""
-        bump_message = ""
 
         #All the actions are equally likely
         if(r <= 0.25): #moves up the grid

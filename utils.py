@@ -1,5 +1,101 @@
+import random
+import math
+
 rotor_sound_strong = [(2, 1), (2, 3), (2, 4), (3, 1), (3, 3), (3, 4), (3, 5), (4, 2), (4, 3), (5, 4)]
 rotor_sound_weak = [(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (2, 2), (2, 5), (3, 2), (4, 1), (4, 4), (4, 5), (5, 1), (5, 2), (5, 3), (5, 5)]
 bump_sound_strong = [(1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (3, 3), (3, 4), (5, 2), (5, 3), (5, 4)]
 bump_sound_weak = [(1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (3, 1), (3, 2), (3, 5), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (5, 1), (5, 5)]
 
+def get_emission_prob(observation, state):
+    res = 0
+    if state in rotor_sound_strong and state in bump_sound_strong:
+        if observation == (0,0):
+            res = 0.1 * 0.1
+        elif observation == (0,1):
+            res = 0.1 * 0.9
+        elif observation == (1,0):
+            res = 0.9 * 0.1
+        else:
+            res = 0.9 * 0.9
+    elif state in rotor_sound_strong and state in bump_sound_weak:
+        if observation == (0,0):
+            res = 0.1 * 0.9
+        elif observation == (0,1):
+            res = 0.1 * 0.1
+        elif observation == (1,0):
+            res = 0.9 * 0.9
+        else:
+            res = 0.9 * 0.1
+    elif state in rotor_sound_weak and state in bump_sound_strong:
+        if observation == (0,0):
+            res = 0.9 * 0.1
+        elif observation == (0,1):
+            res = 0.9 * 0.9
+        elif observation == (1,0):
+            res = 0.1 * 0.1
+        else:
+            res = 0.1 * 0.9
+    else:
+        if observation == (0,0):
+            res = 0.9 * 0.9
+        elif observation == (0,1):
+            res = 0.9 * 0.1
+        elif observation == (1,0):
+            res = 0.1 * 0.9
+        else:
+            res = 0.1 * 0.1
+    # print(res)
+    return res
+
+def valid(state, grid_size):
+    if state[0]>=0 and state[0] < grid_size and state[1] >=0 and state[1] < grid_size:
+        return True
+    else:
+        return False
+
+def filtering(init_grid,num_of_time_steps, grid_size, observations):
+    forward_pass = [init_grid]
+    transition_x = [1,0,-1,0]
+    transition_y = [0,1,0,-1]
+    for i in range(num_of_time_steps):
+        ith_grid = []
+        for j in range(grid_size):
+            jth_row = []
+            for k in range(grid_size):
+                sum = 0.0
+                for l in range(4):
+                    x = j + transition_x[l]
+                    y = k + transition_y[l]
+                    if valid((x,y),grid_size):
+                        sum += 0.25 * forward_pass[i][x][y]
+                value = get_emission_prob(observations[i+1],(j,k)) * sum
+                jth_row.append(value)
+            ith_grid.append(jth_row)
+        forward_pass.append(ith_grid)
+    return forward_pass
+
+def get_log_likelihood(forward_pass, grid_size):
+    ll = []
+    for i in range(len(forward_pass)):
+        ith_grid = []
+        for j in range(grid_size):
+            jth_row = []
+            for k in range(grid_size):
+                jth_row.append(math.log(forward_pass[i][j][k]))
+            ith_grid.append(jth_row)
+        ll.append(ith_grid)
+    return ll
+
+def maximum_likelihood(forward_pass,grid_size,init_state):
+    mle = [init_state]
+    for i in range(len(forward_pass)):
+        ma = -math.inf
+        state = (-1,-1)
+        for j in range(grid_size):
+            for k in range(grid_size):
+                if ma < forward_pass[i][j][k]:
+                    state = (j,k)
+                    ma = forward_pass[i][j][k]
+        if i!=0:
+           mle.append(state)
+    return mle 
