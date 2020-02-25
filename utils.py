@@ -1,49 +1,61 @@
 import random
 import math
 
-rotor_sound_strong = [(2, 1), (2, 3), (2, 4), (3, 1), (3, 3), (3, 4), (3, 5), (4, 2), (4, 3), (5, 4)]
-rotor_sound_weak = [(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (2, 2), (2, 5), (3, 2), (4, 1), (4, 4), (4, 5), (5, 1), (5, 2), (5, 3), (5, 5)]
-bump_sound_strong = [(1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (3, 3), (3, 4), (5, 2), (5, 3), (5, 4)]
-bump_sound_weak = [(1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (3, 1), (3, 2), (3, 5), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (5, 1), (5, 5)]
+rotor_sound_strong = [(1, 0), (1, 2), (1, 3), (2, 0), (2, 2), (2, 3), (2, 4), (3, 1), (3, 2), (4, 3)]
+rotor_sound_weak = [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (1, 1), (1, 4), (2, 1), (3, 0), (3, 3), (3, 4), (4, 0), (4, 1), (4, 2), (4, 4)]
+bump_sound_strong = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (2, 2), (2, 3), (4, 1), (4, 2), (4, 3)]
+bump_sound_weak = [(0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 0), (2, 1), (2, 4), (3, 0), (3, 1), (3, 2), (3, 3), (3, 4), (4, 0), (4, 4)]
 
-def get_emission_prob(observation, state):
+def get_emission_prob(observation, state,mode):
     res = 0
-    if state in rotor_sound_strong and state in bump_sound_strong:
-        if observation == (0,0):
-            res = 0.1 * 0.1
-        elif observation == (0,1):
-            res = 0.1 * 0.9
-        elif observation == (1,0):
-            res = 0.9 * 0.1
+    if mode == 1: #mode=1 means that both bump and rotor observations are taken into consideration
+        if state in rotor_sound_strong and state in bump_sound_strong:
+            if observation == (0,0):
+                res = 0.1 * 0.1
+            elif observation == (0,1):
+                res = 0.1 * 0.9
+            elif observation == (1,0):
+                res = 0.9 * 0.1
+            else:
+                res = 0.9 * 0.9
+        elif state in rotor_sound_strong and state in bump_sound_weak:
+            if observation == (0,0):
+                res = 0.1 * 0.9
+            elif observation == (0,1):
+                res = 0.1 * 0.1
+            elif observation == (1,0):
+                res = 0.9 * 0.9
+            else:
+                res = 0.9 * 0.1
+        elif state in rotor_sound_weak and state in bump_sound_strong:
+            if observation == (0,0):
+                res = 0.9 * 0.1
+            elif observation == (0,1):
+                res = 0.9 * 0.9
+            elif observation == (1,0):
+                res = 0.1 * 0.1
+            else:
+                res = 0.1 * 0.9
         else:
-            res = 0.9 * 0.9
-    elif state in rotor_sound_strong and state in bump_sound_weak:
-        if observation == (0,0):
-            res = 0.1 * 0.9
-        elif observation == (0,1):
-            res = 0.1 * 0.1
-        elif observation == (1,0):
-            res = 0.9 * 0.9
+            if observation == (0,0):
+                res = 0.9 * 0.9
+            elif observation == (0,1):
+                res = 0.9 * 0.1
+            elif observation == (1,0):
+                res = 0.1 * 0.9
+            else:
+                res = 0.1 * 0.1
+    else:#If only bump observations were taken into consideration
+        if state in bump_sound_strong:
+            if observation[1] == 0:
+                res = 0.1
+            else:
+                res = 0.9
         else:
-            res = 0.9 * 0.1
-    elif state in rotor_sound_weak and state in bump_sound_strong:
-        if observation == (0,0):
-            res = 0.9 * 0.1
-        elif observation == (0,1):
-            res = 0.9 * 0.9
-        elif observation == (1,0):
-            res = 0.1 * 0.1
-        else:
-            res = 0.1 * 0.9
-    else:
-        if observation == (0,0):
-            res = 0.9 * 0.9
-        elif observation == (0,1):
-            res = 0.9 * 0.1
-        elif observation == (1,0):
-            res = 0.1 * 0.9
-        else:
-            res = 0.1 * 0.1
+            if observation[1] == 0:
+                res = 0.9
+            else:
+                res = 0.1
     # print(res)
     return res
 
@@ -68,7 +80,9 @@ def filtering(init_grid,num_of_time_steps, grid_size, observations):
                     y = k + transition_y[l]
                     if valid((x,y),grid_size):
                         sum += 0.25 * forward_pass[i][x][y]
-                value = get_emission_prob(observations[i+1],(j,k)) * sum
+                    else:
+                        sum += 0.25 * forward_pass[i][j][k]
+                value = get_emission_prob(observations[i+1],(j,k),2) * sum
                 jth_row.append(value)
             ith_grid.append(jth_row)
         forward_pass.append(ith_grid)
